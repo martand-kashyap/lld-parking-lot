@@ -5,5 +5,5 @@ public enum PaymentStatus {
     COMPLETED,
     PENDING,
     DECLINED,
-    DEFAULT
+    UNPAID
 }

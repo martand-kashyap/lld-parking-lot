@@ -1,4 +1,4 @@
 package design.parkinglot.model;
 
-public class Entry {
+public class Entrance {
 }
