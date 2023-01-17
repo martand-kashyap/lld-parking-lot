@@ -1,0 +1,200 @@
+@startuml
+'skinparam classAttributeIconSize 0
+
+top to bottom direction
+enum ParkingSpotType {
+    COMPACT,
+    LARGE,
+    MOTORCYCLE,
+    HANDICAPPED
+}
+
+enum VehicleType {
+    CAR,
+    TRUCK,
+    VAN,
+    MOTORCYCLE
+}
+
+enum PaymentStatus {
+    UNPAID,
+    PAID,
+    REFUNDED,
+    FAILED,
+    PENDING
+}
+
+enum AccountStatus {
+    ACTIVE,
+    CLOSED,
+    CANCELLED,
+    BLACKLISTED,
+    NONE
+}
+
+class Address {
+   - String name
+   - String streetAddress
+   - String city
+   - String state
+   - String zipCode
+
+   + String getAddress()
+}
+class Person {
+   - String name
+   - Address address
+   - String phone
+   - String email
+}
+Person *-- Address : 1..1 composition
+
+class ParkingLot {
+   - {static} ParkingLot INSTANCE
+   - final String parkingLotName
+   - final Address address
+'   - ParkingRate parkingRate
+'   - Map<String, Entrance> entrances
+'   - Map<String, Exit> exits
+'   - DisplayBoard displayBoard
+'   - Map<ParkingSpotType, LinkedList<ParkingSpot>> parkingSpots
+   - Map<ParkingSpotType, ArrayList<ParkingSpot>> usedSpots
+'   - Map<String, Ticket> tickets
+
+   - ParkingLot()
+   + {static} ParkingLot getInstance()
+   + boolean isParkingFull()
+   + boolean isParkingFullForVehicle(Vehicle vehicle)
+   + synchronized ParkingSpot findAvailableSpotForVehicle(Vehicle vehicle)
+   + synchronized Ticket parkVehicle(Vehicle vehicleToPark, String entranceName)
+}
+class ParkingRate {
+    'private ParkingSpotType spotType
+    private int hour
+    private double rate
+}
+ParkingLot *-left- ParkingRate : 1..1 composition
+
+class Entrance {
+    - final String id
+
+    + Entrance(String id)
+    + Ticket createTicket(Vehicle vehicleToPark, ParkingSpot spot)
+}
+class Exit {
+    - final String id
+
+    + Exit(String id)
+    + Ticket processTicket(Ticket ticket)
+}
+ParkingLot *--- Entrance : 1..n composition
+ParkingLot *--- Exit : 1..n composition
+
+abstract class ParkingSpot {
+    - ParkingSpotType parkingSpotType;
+    - boolean isFree;
+'    - Vehicle parkedVehicle;
+
+    + ParkingSpot(ParkingSpotType type)
+    + void parkVehicle(Vehicle vehicleToPark)
+    + void unpark()
+}
+together{
+    ParkingSpot <|-- Compact : extends
+    ParkingSpot <|-- Large : extends
+    ParkingSpot <|-- Handicapped : extends
+    ParkingSpot <|-- MotorcycleSpot : extends
+'    ParkingSpot <|-- Electric : extends
+'    Electric o-- Payment : aggregation
+}
+ParkingLot *-- ParkingSpot : 1..n composition
+
+abstract class Vehicle {
+    - String registrationNumber;
+    - VehicleType type;
+
+    + Vehicle(String registrationNumber, VehicleType type)
+    + void assignTicket(Ticket ticket)
+'    + ParkingSpotType getSpotTypeForVehicle(VehicleType type)
+}
+together {
+    Vehicle <|-- Car : extends
+    Vehicle <|-- Motorcycle : extends
+    Vehicle <|-- Truck : extends
+    Vehicle <|-- Van : extends
+}
+ParkingSpot o-- Vehicle : Aggregation
+
+class DisplayBoard {
+    - final String id;
+
+    + DisplayBoard()
+    + String displayAvailableSpots()
+}
+ParkingLot *-right- DisplayBoard: 1..1 composition
+
+class Ticket {
+    - String ticketNumber;
+    - Date timeOfEntry;
+    - Date timeOfExit;
+    - double cost;
+'    - Vehicle vehicle;
+'    - Payment payment;
+'    - Entrance entrance;
+'    - Exit exit;
+'    - ParkingSpot spot;
+
+    + Ticket(Vehicle vehicle, Entrance entrance, ParkingSpot spot)
+}
+Ticket -- Vehicle : 1..1 association
+Ticket -right- ParkingSpot : 1..1 association
+Ticket -- Entrance : 1..1 association
+Ticket -- Payment : 1..1 association
+Ticket -- Exit : 1..1 association
+ParkingLot *-- Ticket : 1..n composition
+
+abstract class Payment {
+    - String paymentId
+    - double amount
+    - Date timestamp
+    - PaymentStatus status
+
+    + Payment(double amount)
+    + {abstract} boolean initiateTransaction()
+}
+together{
+    Payment <|-- Cash : extends
+    Payment <|-- Card : extends
+}
+abstract class Account {
+    - String username
+    - String password
+    - Person person
+    - AccountStatus status
+
+    + Account(String username, String password, Person person)
+    + {abstract} void resetPassword()
+    + {abstract} void login()
+    + {abstract} void logout()
+}
+class Admin {
+    + Admin(String username, String password, Person person)
+    + void resetPassword()
+    + void addParkingSpot(ParkingSpotType type)
+    + void addEntrance(String name, Entrance entrance)
+    + void addExit(String name, Exit exit)
+    + void addDisplayBoard(DisplayBoard board)
+    + void setParkingRate(ParkingRate rate)
+}
+
+class ParkingAttendant {
+    + ParkingAttendant(String username, String password, Person person)
+    + void resetPassword()
+    + void processTicket(Ticket ticket)
+}
+Account <|-- Admin : extends
+Account <|-- ParkingAttendant : extends
+
+Admin -- ParkingLot : association
+ParkingAttendant -- ParkingLot : association
+@enduml
